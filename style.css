@@ -1,0 +1,145 @@
+body {
+  font-family: Arial, sans-serif;
+  padding: 20px;
+ background-image: url('images/fundo.jpg');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+.container {
+  max-width: 600px;
+  margin: 2rem auto;
+  padding: 2rem;
+  border-radius: 10px;
+  box-shadow: 0 10px 5px rgba(0, 0, 0, 0.1);
+}
+
+h1 {
+  text-align: center;
+  color: #000000;
+  margin-bottom: 1.5rem;
+}
+
+input,
+button {
+  padding: 5px;
+  margin: 5px 0;
+  font-size: 16px;
+  border: 2px solid #ccc;
+  border-radius: 10px;
+}
+
+button {
+  background-color: #090160;
+  color: white;
+  cursor: pointer;
+  border: none;
+}
+
+button:hover {
+  background-color: #4144fd;
+}
+
+ul {
+  text-align: center;
+  list-style: none;
+  padding: 0;
+}
+
+li {
+  background-color: #ffffff7a;
+  margin-bottom: 12px;
+  padding: 12px;
+  border-radius: 10px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+li.done {
+  background-color: #c8e6c9;
+  text-decoration: line-through;
+  color: #555;
+}
+
+form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+form input,
+form button {
+  padding: 12px;
+  font-size: 1rem;
+}
+
+.entrega {
+  background: rgba(17, 2, 173, 0.354);
+  padding: 10px;
+  margin-bottom: 10px;
+  border-left: 5px solid #2195f3;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  align-items: center;
+}
+
+.entrega {
+  text-align: center;
+  width: 100%;
+  max-width: 400px;
+  /* ajuste conforme desejar */
+}
+
+.entrega button {
+  align-self: flex-end;
+}
+
+@media (min-width: 600px) {
+  form {
+
+    align-items: center;
+  }
+
+  form input {
+    flex: 1;
+    min-width: 150px;
+  }
+
+  .entrega {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    /* ...restante do seu código... */
+  }
+
+  .entrega span {
+    flex: 1;
+    text-align: left;
+  }
+
+  .entrega button {
+    background-color: #e53935;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    padding: 6px 16px;
+    margin-top: 8px;
+    cursor: pointer;
+    font-weight: bold;
+    transition: background 0.2s;
+  }
+
+  .entrega button:hover {
+    background-color: #b71c1c;
+  }
+}
+
+#entregas {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}

@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" href="icone/icon-192.png" type="image/png">
+  <link rel="stylesheet" href="style.css">
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#2196f3">
+  <title>Saga List Motoboy</title>
+</head>
+
+<body>
+
+  <h1>Lista de Entregas - Motoboy</h1>
+
+  <form id="formEntrega">
+    <input type="number" id="valor" placeholder="Valor da entrega (R$)" required step="0.01">
+    <button type="submit">Adicionar Entrega</button>
+  </form>
+
+  <div class="botoes-acao"></div>
+
+  <div id="entregas"></div>
+
+  <button id="mostrarHistorico" style="margin-top:30px;">Mostrar Histórico Mensal</button>
+  <div id="historicoMensal" style="margin-top:30px; display:none;"></div>
+
+  <div id="total" style="margin-top:15px; font-weight:bold;"></div>
+
+  <button id="baixarTotal" style="display:block; margin-top:10px;">Baixar Total</button>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+  <script>
+    const form = document.getElementById('formEntrega');
+    const entregasDiv = document.getElementById('entregas');
+    let entregas = JSON.parse(localStorage.getItem('entregas')) || [];
+
+    // ✅ Verifica se é um novo dia
+    function verificarData() {
+      const hoje = new Date().toLocaleDateString();
+      const ultimaData = localStorage.getItem('ultimaData');
+
+      if (ultimaData !== hoje) {
+        moverParaHistorico();
+        localStorage.setItem('ultimaData', hoje);
+        entregas = [];
+        salvarEntregas();
+        renderizarEntregas();
+      }
+    }
+
+    function moverParaHistorico() {
+      if (entregas.length === 0) return;
+      const historico = JSON.parse(localStorage.getItem('historicoMensal')) || [];
+      historico.push(...entregas);
+      localStorage.setItem('historicoMensal', JSON.stringify(historico));
+    }
+
+    function salvarEntregas() {
+      localStorage.setItem('entregas', JSON.stringify(entregas));
+    }
+
+    function renderizarEntregas() {
+      entregasDiv.innerHTML = '';
+      entregas.forEach((entrega, index) => {
+        const div = document.createElement('div');
+        div.className = 'entrega' + (entrega.concluida ? ' concluida' : '');
+        div.innerHTML = `
+          <span>
+            Data: ${entrega.data} | Hora: ${entrega.hora} | Valor: R$ ${entrega.valor}
+          </span>
+          <button class="excluir-entrega" data-index="${index}">Excluir</button>
+        `;
+        entregasDiv.appendChild(div);
+      });
+
+      const total = entregas.reduce((acc, e) => acc + parseFloat(e.valor), 0);
+      document.getElementById('total').textContent = 'Total: R$ ' + total.toFixed(2);
+
+      document.querySelectorAll('.excluir-entrega').forEach(btn => {
+        btn.addEventListener('click', function () {
+          const idx = this.getAttribute('data-index');
+          entregas.splice(idx, 1);
+          salvarEntregas();
+          renderizarEntregas();
+        });
+      });
+    }
+
+    form.addEventListener('submit', function (e) {
+      e.preventDefault();
+
+      const agora = new Date();
+      const data = agora.toLocaleDateString();
+      const hora = agora.toLocaleTimeString();
+      const valor = parseFloat(document.getElementById('valor').value).toFixed(2);
+
+      entregas.push({ data, hora, valor, concluida: false });
+      salvarEntregas();
+      renderizarEntregas();
+      form.reset();
+    });
+
+    function renderizarHistoricoMensal() {
+      const historicoDiv = document.getElementById('historicoMensal');
+      const historico = JSON.parse(localStorage.getItem('historicoMensal')) || [];
+
+      const agrupado = {};
+      historico.forEach(entrega => {
+        const [dia, mes, ano] = entrega.data.split('/');
+        const chave = `${mes}/${ano}`;
+        if (!agrupado[chave]) agrupado[chave] = [];
+        agrupado[chave].push(entrega);
+      });
+
+      let html = '<h2>Histórico Mensal</h2>';
+      Object.keys(agrupado).sort((a, b) => {
+        const [mA, yA] = a.split('/').map(Number);
+        const [mB, yB] = b.split('/').map(Number);
+        return yB - yA || mB - mA;
+      }).forEach(mesAno => {
+        const lista = agrupado[mesAno];
+        const totalMes = lista.reduce((acc, e) => acc + parseFloat(e.valor), 0);
+        html += `<div style="margin-bottom:15px;">
+          <strong>${mesAno}</strong> - Total: R$ ${totalMes.toFixed(2)}
+          <ul style="margin:5px 0 0 15px;">` +
+          lista.map(e => `<li>Dia ${e.data.split('/')[0]} - Valor: R$ ${e.valor}</li>`).join('') +
+          `</ul>
+        </div>`;
+      });
+
+      historicoDiv.innerHTML = html;
+    }
+
+    document.getElementById('mostrarHistorico').addEventListener('click', function () {
+      const historicoDiv = document.getElementById('historicoMensal');
+      if (historicoDiv.style.display === 'none') {
+        renderizarHistoricoMensal();
+        historicoDiv.style.display = 'block';
+        this.textContent = 'Ocultar Histórico Mensal';
+      } else {
+        historicoDiv.style.display = 'none';
+        this.textContent = 'Mostrar Histórico Mensal';
+      }
+    });
+
+    document.getElementById('baixarTotal').addEventListener('click', function () {
+      const { jsPDF } = window.jspdf;
+      let total = 0;
+      const doc = new jsPDF();
+      doc.setFontSize(16);
+      doc.text("Lista de Entregas - Motoboy", 10, 10);
+
+      let y = 20;
+      const entregasOrdenadas = [...entregas].sort((a, b) => parseFloat(b.valor) - parseFloat(a.valor));
+      const contagemPorValor = {};
+
+      entregasOrdenadas.forEach(entrega => {
+        total += parseFloat(entrega.valor);
+        contagemPorValor[entrega.valor] = (contagemPorValor[entrega.valor] || 0) + 1;
+      });
+
+      entregasOrdenadas.forEach((entrega, i) => {
+        doc.setFontSize(12);
+        doc.text(
+          `${i + 1}. Data: ${entrega.data}, Hora: ${entrega.hora}, Valor: R$ ${entrega.valor}`,
+          10,
+          y
+        );
+        y += 10;
+        if (y > 270) {
+          doc.addPage();
+          y = 20;
+        }
+      });
+
+      y += 10;
+      doc.setFontSize(14);
+      doc.text(`Total: R$ ${total.toFixed(2)}`, 10, y);
+
+      y += 10;
+      doc.setFontSize(13);
+      doc.text('Resumo por valor:', 10, y);
+      y += 8;
+
+      Object.keys(contagemPorValor).sort((a, b) => parseFloat(b) - parseFloat(a)).forEach(valor => {
+        doc.text(`${contagemPorValor[valor]} de R$ ${parseFloat(valor).toFixed(2)}`, 10, y);
+        y += 8;
+        if (y > 270) {
+          doc.addPage();
+          y = 20;
+        }
+      });
+
+      doc.save('lista-e-total-entregas.pdf');
+    });
+
+    // ✅ Verifica a data sempre que abrir
+    verificarData();
+    renderizarEntregas();
+
+    // Service Worker
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('service-worker.js')
+        .then(() => console.log('Service Worker registrado!'));
+    }
+  </script>
+
+</body>
+</html>
